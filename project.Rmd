@@ -1,0 +1,39 @@
+---
+title: "project"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(nycflights13)
+```
+```{r}
+ds_flights <- flights %>%
+   filter(month >= 4 , month <= 9) %>% 
+  mutate(air_time_in_hours = air_time/60, 
+  distinct_in_kilometers = distance*1.609, 
+  flight_speed = round(distinct_in_kilometers/air_time_in_hours))
+
+```
+```{r}
+
+  df <- ds_flights %>% 
+  select(origin, dest, arr_delay, dep_delay, flight_speed, tailnum, flight) %>% 
+  group_by(origin, dest) %>% 
+    summarise(avg_arr_delay = round(mean(arr_delay, na.rm = TRUE)),
+              avg_dep_delay = round(mean(dep_delay, na.rm = TRUE)), 
+              avg_speed = round(mean(flight_speed, na.rm = TRUE)),
+              no_of_planes = n_distinct(tailnum),
+              no_of_flights = n()) %>% 
+              filter(no_of_flights >= 1000) %>% 
+              arrange(desc(avg_speed))
+
+left_join(df, airports %>% select(faa, name), by = c("origin" = "faa")) %>% 
+  rename(origin_name = name) %>% 
+left_join(airports %>% select(faa, name), by = c("dest" = "faa")) %>% 
+  rename(dest_name = name) %>% 
+  ungroup() %>% 
+  select(origin_name, dest_name, no_of_flights, avg_dep_delay, avg_speed, no_of_planes) 
+
+```
